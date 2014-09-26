@@ -662,7 +662,7 @@ class NeutronNetworkDeploymentSerializer(NetworkDeploymentSerializer):
                 "router_ext": True,
                 "physnet": "physnet1"
             },
-            "tenant": "admin",
+            "tenant": objects.Cluster.get_creds(cluster)['tenant']['value'],
             "shared": False
         }
 
@@ -683,7 +683,7 @@ class NeutronNetworkDeploymentSerializer(NetworkDeploymentSerializer):
                 "physnet": "physnet2"
                 if cluster.network_config.segmentation_type == "vlan" else None
             },
-            "tenant": "admin",
+            "tenant": objects.Cluster.get_creds(cluster)['tenant']['value'],
             "shared": False
         }
 
@@ -1175,6 +1175,16 @@ def create_serializer(cluster):
             ),
         },
         '5.1': {
+            'multinode': (
+                DeploymentMultinodeSerializer51,
+                ps.PriorityMultinodeSerializer51,
+            ),
+            'ha': (
+                DeploymentHASerializer51,
+                ps.PriorityHASerializer51,
+            ),
+        },
+        '5.2': {
             'multinode': (
                 DeploymentMultinodeSerializer51,
                 ps.PriorityMultinodeSerializer51,

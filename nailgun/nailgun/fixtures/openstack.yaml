@@ -1013,6 +1013,9 @@
             generator: "password"
           db_password:
             generator: "password"
+          auth_encryption_key:
+            generator: "hexstring"
+            generator_arg: "32"
         ceilometer:
           db_password:
             generator: "password"
@@ -1139,6 +1142,12 @@
               label: "dialog.create_cluster_wizard.network.neutr_nsx"
               restrictions:
                 - "Compute.hypervisor == 'vcenter'": "dialog.create_cluster_wizard.network.hypervisor_alert"
+                - condition: "not ('experimental' in version:feature_groups)"
+                  action: "disable"
+                  message: "Neutron with NSX can be used with Experimental mode only. Please, look at the documentation to enable it"
+                - condition: "('experimental' in version:feature_groups) and (NameAndRelease.release_operating_system == 'Ubuntu')"
+                  action: "none"
+                  message: "NSX with Ubuntu was not tested properly and can be inoperable"
               bind:
                 - "cluster:net_provider": "neutron"
                 - "cluster:net_l23_provider": "nsx"
@@ -1214,8 +1223,8 @@
   extend: *full_release
   fields:
     name: "Icehouse on CentOS 6.5"
-    version: "2014.1.1-5.1.9"
-    can_update_from_versions: ["2014.1.1-5.1"]
+    version: "2014.1.3-5.2"
+    can_update_from_versions: ["2014.1.1-5.1.9"]
     operating_system: "CentOS"
     description: "This option will install the OpenStack Icehouse packages using a CentOS based operating system. With high availability features built in, you are getting a robust, enterprise-grade OpenStack deployment."
     attributes_metadata:
@@ -1255,8 +1264,8 @@
   extend: *full_release
   fields:
     name: "Icehouse on Ubuntu 12.04.4"
-    version: "2014.1.1-5.1.9"
-    can_update_from_versions: ["2014.1.1-5.1"]
+    version: "2014.1.3-5.2"
+    can_update_from_versions: [ "2014.1.1-5.1.9"]
     operating_system: "Ubuntu"
     description: "This option will install the OpenStack Icehouse packages using Ubuntu as a base operating system. With high availability features built in, you are getting a robust, enterprise-grade OpenStack deployment."
     attributes_metadata:

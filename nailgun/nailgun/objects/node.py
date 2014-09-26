@@ -102,7 +102,7 @@ class Node(NailgunObject):
 
         q = db().query(cls.model)
         if mac:
-            node = q.filter_by(mac=mac).first()
+            node = q.filter_by(mac=mac.lower()).first()
         else:
             node = q.get(node_uid)
         return node
@@ -138,7 +138,7 @@ class Node(NailgunObject):
             cls.model.nic_interfaces
         ).filter(
             models.NodeNICInterface.mac.in_(
-                [n["mac"] for n in interfaces]
+                [n["mac"].lower() for n in interfaces]
             )
         ).first()
 
@@ -167,12 +167,7 @@ class Node(NailgunObject):
         :param instance: Node DB instance
         :returns: True when node has Public network
         """
-        if instance.cluster.net_provider == \
-                consts.CLUSTER_NET_PROVIDERS.nova_network:
-            return True
-        assignment = instance.cluster.attributes.editable.get(
-            'public_network_assignment')
-        if not assignment or assignment['assign_to_all_nodes']['value']:
+        if Cluster.should_assign_public_to_all_nodes(instance.cluster):
             return True
         ctrl = set(['primary-controller', 'controller', 'zabbix-server'])
         if ctrl & (set(instance.roles) or set(instance.pending_roles)):

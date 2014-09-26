@@ -471,6 +471,27 @@ class Cluster(NailgunObject):
                 data.extend(node.replaced_deployment_info)
         return data
 
+    @classmethod
+    def get_creds(cls, instance):
+        return instance.attributes.editable['access']
+
+    @classmethod
+    def should_assign_public_to_all_nodes(cls, instance):
+        """Determine whether Public network is to be assigned to all nodes in
+        this cluster.
+
+        :param instance: cluster instance
+        :returns: True when Public network is to be assigned to all nodes
+        """
+        if instance.net_provider == \
+                consts.CLUSTER_NET_PROVIDERS.nova_network:
+            return True
+        assignment = instance.attributes.editable.get(
+            'public_network_assignment')
+        if not assignment or assignment['assign_to_all_nodes']['value']:
+            return True
+        return False
+
 
 class ClusterCollection(NailgunCollection):
     """Cluster collection
