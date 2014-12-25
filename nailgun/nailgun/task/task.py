@@ -405,7 +405,7 @@ class BaseNetworkVerification(object):
         nodes = []
         other_networks = []
         first_cls_node = self.task.cluster.nodes[0]
-        if self.is_network_present_for_node(first_cls_node, 'storage'):
+        if not self.is_network_present_for_node(first_cls_node, 'storage'):
             if self.task.cluster.is_ha_mode:
                 controller_node = self.get_first_node_by_role(
                     self.task.cluster.nodes,
