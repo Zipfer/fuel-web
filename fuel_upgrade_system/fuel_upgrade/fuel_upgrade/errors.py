@@ -25,6 +25,10 @@ class CannotRunUpgrade(FuelUpgradeException):
     pass
 
 
+class CommandError(FuelUpgradeException):
+    pass
+
+
 class DockerExecutedErrorNonZeroExitCode(FuelUpgradeException):
     pass
 
@@ -78,4 +82,8 @@ class UnsupportedActionTypeError(FuelUpgradeException):
 
 
 class NailgunIsNotRunningError(FuelUpgradeException):
+    pass
+
+
+class BaseReleaseNotFound(FuelUpgradeException):
     pass

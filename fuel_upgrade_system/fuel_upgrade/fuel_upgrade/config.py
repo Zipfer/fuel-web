@@ -27,6 +27,8 @@ Why python based config?
   and it's hard to create variables nesting more than 1
 """
 
+import six
+
 import glob
 import logging
 import yaml
@@ -78,13 +80,14 @@ def get_version_from_config(path):
     return read_yaml_config(path)['VERSION']['release']
 
 
-def build_config(update_path):
+def build_config(update_path, admin_password):
     """Builds config
 
     :param str update_path: path to upgrade
+    :param str admin_password: admin user password
     :returns: :class:`Config` object
     """
-    return Config(config(update_path))
+    return Config(config(update_path, admin_password))
 
 
 def from_fuel_version(current_version_path, from_version_path):
@@ -102,7 +105,7 @@ def from_fuel_version(current_version_path, from_version_path):
     return get_version_from_config(current_version_path)
 
 
-def get_endpoints(astute_config):
+def get_endpoints(astute_config, admin_password):
     """Returns services endpoints
 
     :returns: dict where key is the a name of endpoint
@@ -115,7 +118,7 @@ def get_endpoints(astute_config):
     # 5.0.X releases we didn't have this data
     # in astute file
     fuel_access = astute_config.get(
-        'FUEL_ACCESS', {'user': 'admin', 'password': 'admin'})
+        'FUEL_ACCESS', {'user': 'admin'})
     rabbitmq_access = astute_config.get(
         'astute', {'user': 'naily', 'password': 'naily'})
     rabbitmq_mcollective_access = astute_config.get(
@@ -123,7 +126,7 @@ def get_endpoints(astute_config):
 
     keystone_credentials = {
         'username': fuel_access['user'],
-        'password': fuel_access['password'],
+        'password': admin_password,
         'auth_url': 'http://{0}:5000/v2.0/tokens'.format(master_ip),
         'tenant_name': 'admin'}
 
@@ -217,10 +220,11 @@ def get_host_system(update_path, new_version):
                 '/var/www/nailgun', openstack_version, 'centos/x86_64')}}
 
 
-def config(update_path):
+def config(update_path, admin_password):
     """Generates configuration data for upgrade
 
     :param str update_path: path to upgrade
+    :param str admin_password: admin user password
     :retuns: huuuge dict with all required
              for ugprade parameters
     """
@@ -267,7 +271,7 @@ def config(update_path):
         'timeout': 900,
         'interval': 3}
 
-    endpoints = get_endpoints(astute)
+    endpoints = get_endpoints(astute, admin_password)
 
     # Configuration data for docker client
     docker = {
@@ -351,6 +355,30 @@ def config(update_path):
     container_prefix = 'fuel-core-'
     master_ip = astute['ADMIN_NETWORK']['ipaddress']
 
+    volumes = {
+        'volume_logs': [
+            ('/var/log/docker-logs', {'bind': '/var/log', 'ro': False})],
+
+        'volume_repos': [
+            ('/var/www/nailgun', {'bind': '/var/www/nailgun', 'ro': False}),
+            ('/etc/yum.repos.d', {'bind': '/etc/yum.repos.d', 'ro': False})],
+
+        'volume_ssh_keys': [
+            ('/root/.ssh', {'bind': '/root/.ssh', 'ro': False})],
+
+        'volume_fuel_configs': [
+            ('/etc/fuel', {'bind': '/etc/fuel', 'ro': False})],
+
+        'volume_upgrade_directory': [
+            (working_directory, {'bind': '/tmp/upgrade', 'ro': True})],
+
+        'volume_dump': [
+            ('/dump', {'bind': '/var/www/nailgun/dump', 'ro': False})],
+
+        'volume_puppet_manifests': [
+            ('/etc/puppet', {'bind': '/etc/puppet', 'ro': True})],
+    }
+
     containers = [
 
         {'id': 'nailgun',
@@ -364,12 +392,13 @@ def config(update_path):
          'links': [
              {'id': 'postgres', 'alias': 'db'},
              {'id': 'rabbitmq', 'alias': 'rabbitmq'}],
-         'volumes': ['/usr/share/nailgun/static'],
-         'volumes_from': [
+         'binds': [
              'volume_logs',
              'volume_repos',
              'volume_ssh_keys',
-             'volume_fuel_configs']},
+             'volume_fuel_configs'],
+         'volumes': [
+             '/usr/share/nailgun/static']},
 
         {'id': 'astute',
          'supervisor_config': True,
@@ -379,7 +408,7 @@ def config(update_path):
              "/var/lib/astute/'"),
          'links': [
              {'id': 'rabbitmq', 'alias': 'rabbitmq'}],
-         'volumes_from': [
+         'binds': [
              'volume_logs',
              'volume_repos',
              'volume_ssh_keys',
@@ -410,7 +439,7 @@ def config(update_path):
              [69, 'tcp'],
              80,
              443],
-         'volumes_from': [
+         'binds': [
              'volume_logs',
              'volume_repos',
              'volume_ssh_keys',
@@ -421,12 +450,12 @@ def config(update_path):
          'supervisor_config': True,
          'from_image': 'mcollective',
          'privileged': True,
-         'volumes_from': [
+         'binds': [
              'volume_logs',
              'volume_repos',
              'volume_ssh_keys',
-             'volume_fuel_configs',
-             'volume_dump']},
+             'volume_dump',
+             'volume_fuel_configs']},
 
         {'id': 'rsync',
          'supervisor_config': True,
@@ -436,7 +465,7 @@ def config(update_path):
                  ('127.0.0.1', 873),
                  (master_ip, 873)]},
          'ports': [873],
-         'volumes_from': [
+         'binds': [
              'volume_logs',
              'volume_repos',
              'volume_fuel_configs',
@@ -456,7 +485,7 @@ def config(update_path):
                  ('127.0.0.1', 25150),
                  (master_ip, 25150)]},
          'ports': [[514, 'udp'], 514],
-         'volumes_from': [
+         'binds': [
              'volume_logs',
              'volume_repos',
              'volume_fuel_configs']},
@@ -470,7 +499,7 @@ def config(update_path):
          'ports': [5000, 35357],
          'links': [
              {'id': 'postgres', 'alias': 'postgres'}],
-         'volumes_from': [
+         'binds': [
              'volume_logs',
              'volume_repos',
              'volume_fuel_configs']},
@@ -485,13 +514,12 @@ def config(update_path):
          'links': [
              {'id': 'nailgun', 'alias': 'nailgun'},
              {'id': 'ostf', 'alias': 'ostf'}],
-         'volumes_from': [
-             'volume_repos',
-             'nailgun',
+         'binds': [
              'volume_logs',
              'volume_repos',
-             'volume_fuel_configs',
-             'volume_dump']},
+             'volume_dump',
+             'volume_fuel_configs'],
+         'volumes_from': ['nailgun']},
 
         {'id': 'rabbitmq',
          'supervisor_config': True,
@@ -510,7 +538,7 @@ def config(update_path):
                  ('127.0.0.1', 61613),
                  (master_ip, 61613)]},
          'ports': [5672, 4369, 15672, 61613],
-         'volumes_from': [
+         'binds': [
              'volume_logs',
              'volume_repos',
              'volume_fuel_configs']},
@@ -526,11 +554,11 @@ def config(update_path):
          'links': [
              {'id': 'postgres', 'alias': 'db'},
              {'id': 'rabbitmq', 'alias': 'rabbitmq'}],
-         'volumes_from': [
+         'binds': [
              'volume_logs',
              'volume_repos',
-             'volume_fuel_configs',
-             'volume_ssh_keys']},
+             'volume_ssh_keys',
+             'volume_fuel_configs']},
 
         {'id': 'postgres',
          'after_container_creation_command': (
@@ -543,81 +571,36 @@ def config(update_path):
                  ('127.0.0.1', 5432),
                  (master_ip, 5432)]},
          'ports': [5432],
-         'volumes_from': [
+         'binds': [
              'volume_logs',
              'volume_repos',
              'volume_fuel_configs',
-             'volume_upgrade_directory']},
+             'volume_upgrade_directory']}]
 
-        {'id': 'volume_repos',
-         'supervisor_config': False,
-         'from_image': 'busybox',
-         'volumes': ['/var/www/nailgun'],
-         'binds': {
-             '/var/www/nailgun': {
-                 'bind': '/var/www/nailgun',
-                 'ro': False}}},
+    # Since we dropped fuel storage containers we should provide an
+    # alternative DRY mechanism for mounting volumes directly into
+    # containers. So below code performs such job and unfolds containers
+    # an abstract declarative "binds" format into docker-py's "binds"
+    # format.
+    for container in containers:
+        binds = {}
+        for volume in container.get('binds', []):
+            binds.update(volumes[volume])
+        container['binds'] = binds
 
-        {'id': 'volume_logs',
-         'supervisor_config': False,
-         'from_image': 'busybox',
-         'volumes': ['/var/log'],
-         'binds': {
-             '/var/log/docker-logs': {
-                 'bind': '/var/log',
-                 'ro': False}}},
-
-        {'id': 'volume_ssh_keys',
-         'supervisor_config': False,
-         'from_image': 'busybox',
-         'volumes': ['/root/.ssh'],
-         'binds': {
-             '/root/.ssh': {
-                 'bind': '/root/.ssh',
-                 'ro': False}}},
-
-        {'id': 'volume_dump',
-         'supervisor_config': False,
-         'from_image': 'busybox',
-         'volumes': ['/dump'],
-         'binds': {
-             '/dump': {
-                 'bind': '/var/www/nailgun/dump',
-                 'ro': False}}},
-
-        {'id': 'volume_fuel_configs',
-         'supervisor_config': False,
-         'from_image': 'busybox',
-         'volumes': ['/etc/fuel'],
-         'binds': {
-             '/etc/fuel': {
-                 'bind': '/etc/fuel',
-                 'ro': False}}},
-
-        {'id': 'volume_puppet_manifests',
-         'supervisor_config': False,
-         'from_image': 'busybox',
-         'volumes': ['/etc/puppet'],
-         'binds': {
-             '/etc/puppet': {
-                 'bind': '/etc/puppet',
-                 'ro': True}}},
-
-        {'id': 'volume_upgrade_directory',
-         'supervisor_config': False,
-         'from_image': 'busybox',
-         'volumes': ['/tmp/upgrade'],
-         'binds': {
-             # NOTE(eli): Use working directory
-             # variable to mount it into the container
-             working_directory: {
-                 'bind': '/tmp/upgrade',
-                 'ro': True}}}]
+        # unfortunately, docker-py has bad design and we must add to
+        # containers' "volumes" list those folders that will be mounted
+        # into container
+        if 'volumes' not in container:
+            container['volumes'] = []
+        for _, volume in six.iteritems(binds):
+            container['volumes'].append(volume['bind'])
 
     # Openstack Upgrader settings. Please note, that "[0-9.-]*" is
     # a glob pattern for matching our os versions
     openstack = {
-        'releases': join(update_path, 'releases', '*.yaml'),
+        'releases': join(update_path, 'releases', '[0-9.-]*.yaml'),
+        'metadata': join(update_path, 'releases', 'metadata.yaml'),
 
         'puppets': {
             'src': join(update_path, 'puppet', '[0-9.-]*'),
