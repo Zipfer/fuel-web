@@ -334,7 +334,7 @@ class TestNodeDefaultsDisksHandler(BaseIntegrationTest):
         cluster = self.env.create_cluster(api=True)
         self.env.create_node(
             api=True,
-            roles=['compute'],  # vgs: os, vm
+            roles=['compute'],  # vgs: os, vm, logs
             cluster_id=cluster['id'])
         node_db = self.env.nodes[0]
         response = self.get(node_db.id)
@@ -360,7 +360,7 @@ class TestNodeDefaultsDisksHandler(BaseIntegrationTest):
         self.assertEqual(len(response), 7)
 
         # check all groups on all disks
-        vgs = ['os', 'vm']
+        vgs = ['os', 'vm', 'logs']
         for disk in response:
             self.assertEqual(len(disk['volumes']), len(vgs))
 
@@ -413,7 +413,7 @@ class TestNodeVolumesInformationHandler(BaseIntegrationTest):
     def test_volumes_information_for_compute_role(self):
         node_db = self.create_node('compute')
         response = self.get(node_db.id)
-        self.check_volumes(response, ['os', 'vm'])
+        self.check_volumes(response, ['os', 'vm', 'logs'])
 
     def test_volumes_information_for_controller_role(self):
         node_db = self.create_node('controller')
@@ -513,6 +513,10 @@ class TestVolumeManager(BaseIntegrationTest):
                     vg_size += volume['size']
                     vg_size -= volume.get('lvm_meta_size', 0)
                     sum_lvm_meta += volume.get('lvm_meta_size', 0)
+
+        # Add logs size for compute
+        if volume_name == 'vm':
+            os_size += self.logs_size(spaces)
 
         self.assertEqual(
             vg_size, disk_sum_size - os_size - reserved_size - sum_lvm_meta)

@@ -88,6 +88,7 @@
           - {allocate_size: "all", id: "image"}
         compute:
           - {allocate_size: "min", id: "os"}
+          - {allocate_size: "min", id: "logs"}
           - {allocate_size: "all", id: "vm"}
         cinder:
           - {allocate_size: "min", id: "os"}
