@@ -106,7 +106,12 @@ class EnvironmentAction(Action):
            or network mode exists set action:
                 fuel --env 1 env set --name NewEmvName --mode ha_compact
         """
-        acceptable_params = ('mode', 'name', 'pending_release_id')
+        release_id = 'pending_release_id'
+        if not hasattr(params, release_id):
+            release_id = release_id[release_id.find('rel'):]
+            params.release_id = params.release
+
+        acceptable_params = ('mode', 'name') + (release_id,)
 
         env = Environment(params.env, params=params)
 
