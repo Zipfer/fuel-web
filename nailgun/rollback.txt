@@ -1,0 +1,25 @@
+The rollback operations are intended to be used in case of openstack cluster update failure.
+
+
+  CLI commands to rollback a cluster node:
+  Exec on Fuel master:
+      # fuel node --provision --env ID --node ID
+      # fuel node --deploy --env ID --node ID
+
+  Exec on one of controllers to return a value of global cluster “no-quorum-policy” option:
+      # pcs property set no-quorum-policy=stop
+
+
+The operational openstack cluster can be also downgraded.
+  Get available release ids:
+      # fuel rel
+      id | name                       | state     | operating_system | version
+      ---|----------------------------|-----------|------------------|---------------
+      2  | Icehouse on Ubuntu 12.04.4 | available | Ubuntu           | 2014.1.1-5.1
+      4  | Icehouse on Ubuntu 12.04.4 | available | Ubuntu           | 2014.1.1-5.1.9
+
+  Set the required release id:
+      # fuel env --env ID --set --release ID
+
+  Further run the above commands pair (provision/deploy) to rollback a cluster (one-by-one).
+
