@@ -225,6 +225,10 @@ def get_delete_from_db_arg(help_msg):
     return get_boolean_arg("delete-from-db", help=help_msg)
 
 
+def get_setname_arg(help_msg):
+    return get_str_arg("setname", flags=("--setname",), help=help_msg)
+
+
 def get_network_arg(help_msg):
     return get_boolean_arg("network", flags=("--net",), help=help_msg)
 
