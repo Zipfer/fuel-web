@@ -1076,7 +1076,9 @@ class DeploymentHASerializer(DeploymentMultinodeSerializer):
         """Serialize nodes and set primary-controller
         """
         serialized_nodes = super(
-            DeploymentHASerializer, self).serialize_nodes(nodes, cluster_attrs)
+            DeploymentHASerializer, self).serialize_nodes(nodes,
+                                                          cluster_attrs,
+                                                          is_updated)
 
         # Skip primary role assignment in case of scaling/rollback
         if self.is_primary_capable(serialized_nodes, cluster_attrs):
