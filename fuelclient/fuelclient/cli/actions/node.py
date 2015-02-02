@@ -296,8 +296,8 @@ class NodeAction(Action):
 
     def is_valid_hostname(self, hostname):
         import re
-        regex = '^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)*'
-        '[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$'
+        regex = ('^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)*'
+                 '[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$')
         name = re.search(regex, hostname)
         return name is not None
 
