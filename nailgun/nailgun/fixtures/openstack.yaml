@@ -498,12 +498,15 @@
             weight: 10
             type: "text"
           password:
-            value: "zabbix"
             label: "password"
             description: "Password for Zabbix Administrator"
             weight: 20
             type: "password"
       generated:
+        zabbix:
+          password:
+            value:
+              generator: "password"
         mysql:
           root_password:
             generator: "password"
